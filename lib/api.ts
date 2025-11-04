@@ -1,75 +1,104 @@
-// /lib/api.ts
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-
-// ✅ Configure axios instance
+// export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = "http://127.0.0.1:8000";
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// 🔒 Helper — Inject Bearer token
-function authHeader(token: string) {
-  return { Authorization: `Bearer ${token}` };
+// ✅ Helper to include token in requests
+export const authHeader = (token: string) => ({
+  Authorization: `Bearer ${token}`,
+});
+
+// -------------------------------------------------------
+// 🧠 AUTH
+// -------------------------------------------------------
+// ✅ Signup API call (frontend)
+export async function signup(email: string, password: string, hospital_name: string) {
+  const res = await api.post('/auth/signup', {
+    email,
+    password,
+    hospital_name,
+  });
+  return res.data;
 }
 
-// ======================================================
-// 🧠 Patients API
-// ======================================================
+export async function login(email: string, password: string) {
+  const res = await api.post("/auth/login", { email, password });
+  return res.data;
+}
 
-// ✅ Get all patients
+// -------------------------------------------------------
+// 🏥 HOSPITALS
+// -------------------------------------------------------
+// export async function getHospitals() {
+//   const res = await api.get("/settings/voice-ai/sync");
+//   return res.data;
+// }
+
+// -------------------------------------------------------
+// 👥 PATIENTS
+// -------------------------------------------------------
 export async function getPatients(token: string) {
   const res = await api.get("/patients/", { headers: authHeader(token) });
   return res.data;
 }
 
-// ✅ Create patient (simplified)
-export async function createPatient(token: string, name: string, phone: string) {
-  const res = await api.post(
-    "/patients/",
-    { name, phone },
-    { headers: authHeader(token) }
-  );
-  return res.data;
-}
-
-// ✅ Delete patient (optional)
-export async function deletePatient(token: string, patientId: string) {
-  const res = await api.delete(`/patients/${patientId}`, {
+// export async function createPatient(token: string, name: string, phone: string) {
+//   const res = await api.post(
+//     "/patients/",
+//     { name, phone },
+//     { headers: authHeader(token) }
+//   );
+//   return res.data;
+// }
+export async function createPatient(token: string, data: any) {
+  const res = await api.post('/patients/', data, {
     headers: authHeader(token),
   });
   return res.data;
 }
 
-// ✅ Trigger call for a patient
-export async function callPatient(token: string, patientId: string) {
-  const res = await api.post(
-    `/patients/${patientId}/call`,
-    {},
-    { headers: authHeader(token) }
-  );
+export async function initiateCall(token: string, patientId: string) {
+  const res = await api.post(`/patients/${patientId}/call`, {}, { headers: authHeader(token) });
   return res.data;
 }
 
-// ======================================================
-// 🧠 Agents API (for later)
-// ======================================================
 
-export async function updateAgentVoice(token: string, payload: any) {
-  const res = await api.post("/agents/update", payload, {
+export async function deletePatient(token: string, id: string) {
+  const res = await api.delete(`/patients/${id}`, { headers: authHeader(token) });
+  return res.data;
+
+}
+
+
+// -------------------------------------------------------
+// 🎙️ Voice + Agent Settings
+// -------------------------------------------------------
+// -------------------------------------------------------
+// 🎙️ Voice + Agent Settings (fixed)
+// -------------------------------------------------------
+
+  export async function getVoiceSettings(token: string) {
+    const res = await api.get("/settings/voice-ai/config", {
+      headers: authHeader(token),
+    });
+    return res.data;
+  }
+
+export async function updateVoiceSettings(token: string, body: any) {
+  const res = await api.put("/settings/voice", body, {
     headers: authHeader(token),
   });
   return res.data;
 }
 
-export async function fetchVoices(token: string) {
-  const res = await api.get("/agents/voices", { headers: authHeader(token) });
-  return res.data;
-}
-
-export async function testAgentCall(token: string, payload: any) {
-  const res = await api.post("/agents/test-call", payload, {
+export async function syncVoiceAI(token: string) {
+  const res = await api.post("/settings/voice-ai/sync", {}, {
     headers: authHeader(token),
   });
   return res.data;
