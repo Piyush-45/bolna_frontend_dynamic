@@ -1,194 +1,300 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getPatients } from '@/lib/api';
-import { Loader2, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getPatients } from "@/lib/api";
+import { Loader2, Plus, User, Settings, LogOut, Search } from "lucide-react";
+import { toast } from "sonner";
 
-import PatientTable from '@/components/patients/PatientTable';
-import AddPatientModal from '@/components/patients/AddPatientModal';
+import PatientTable from "@/components/patients/PatientTable";
+import AddPatientModal from "@/components/patients/AddPatientModal";
 
-type TabType = 'all' | 'called' | 'never-called' | 'opd' | 'discharged';
+type TabType = "all" | "called" | "never-called" | "opd" | "discharged";
 
 export default function PatientsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [activeTab, setActiveTab] = useState<TabType>("all");
   const [token, setToken] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // ✅ Get token from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
+    const storedToken = localStorage.getItem("token");
     setToken(storedToken);
   }, []);
 
-  // ✅ Fetch patients using React Query
-  // ✅ Fetch patients using React Query
-const { data, isLoading, error, refetch } = useQuery({
-  queryKey: ['patients', token],
-  queryFn: async () => {
-    if (!token) throw new Error('No authentication token');
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["patients", token],
+    queryFn: async () => {
+      if (!token) throw new Error("No authentication token");
 
-    try {
-      const response = await getPatients(token);
-      console.log('✅ Patients loaded:', response);
-      return response; // ✅ <-- FIXED
-    } catch (err: any) {
-      console.error('❌ Patient fetch failed:', err);
-      toast.error('Failed to fetch patients');
-      throw err;
-    }
-  },
-  enabled: !!token,
-  retry: false,
-});
+      try {
+        const response = await getPatients(token);
+        console.log("✅ Patients loaded:", response);
+        return response;
+      } catch (err: any) {
+        console.error("❌ Patient fetch failed:", err);
+        toast.error("Failed to fetch patients");
+        throw err;
+      }
+    },
+    enabled: !!token,
+    retry: false,
+  });
 
   const patients = data || [];
 
-  // ✅ Filter patients based on tab
+  // Filter patients based on tab and search
   const filteredPatients = patients.filter((p: any) => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'called') return p.call_count > 0;
-    if (activeTab === 'never-called') return p.call_count === 0;
-    if (activeTab === 'discharged') return p.category === 'discharged';
-    if (activeTab === 'opd') return p.category === 'opd';
+    const matchesSearch = searchQuery
+      ? p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.phone?.includes(searchQuery)
+      : true;
+
+    if (!matchesSearch) return false;
+
+    if (activeTab === "all") return true;
+    if (activeTab === "called") return p.call_count > 0;
+    if (activeTab === "never-called") return p.call_count === 0;
+    if (activeTab === "discharged") return p.category === "discharged";
+    if (activeTab === "opd") return p.category === "opd";
     return true;
   });
 
-  // ✅ Count for each tab
   const counts = {
     all: patients.length,
-    opd: patients.filter((p: any) => p.category === 'opd').length,
-    discharged: patients.filter((p: any) => p.category === 'discharged').length,
+    opd: patients.filter((p: any) => p.category === "opd").length,
+    discharged: patients.filter((p: any) => p.category === "discharged").length,
     called: patients.filter((p: any) => p.call_count > 0).length,
     neverCalled: patients.filter((p: any) => p.call_count === 0).length,
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Hospital Voice Agent Dashboard
-            </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              AI-powered patient follow-up system
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
+      {/* Professional Header with Glass Effect */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo & Title */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg shadow-blue-500/30">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-slate-900">
+                  Patient Management
+                </h1>
+                <p className="text-xs text-slate-500">
+                  AI Voice Agent Dashboard
+                </p>
+              </div>
+            </div>
 
-          <button
-            onClick={() => window.location.href = '/dashboard'}
-            className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition"
-          >
-            Go to Account
-          </button>
+            {/* Navigation Actions */}
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => (window.location.href = "/settings")}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all duration-200 hover:shadow-sm"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </button>
+              <button
+                onClick={() => (window.location.href = "/dashboard")}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all duration-200 hover:shadow-sm"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Account
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Overview Cards */}
+        {/* <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <StatCard
+            title="Total Patients"
+            value={counts.all}
+            change="+12%"
+            changeType="positive"
+            gradient="from-blue-500 to-blue-600"
+          />
+          <StatCard
+            title="OPD"
+            value={counts.opd}
+            gradient="from-emerald-500 to-emerald-600"
+          />
+          <StatCard
+            title="Discharged"
+            value={counts.discharged}
+            gradient="from-purple-500 to-purple-600"
+          />
+          <StatCard
+            title="Called"
+            value={counts.called}
+            gradient="from-amber-500 to-amber-600"
+          />
+          <StatCard
+            title="Never Called"
+            value={counts.neverCalled}
+            gradient="from-rose-500 to-rose-600"
+          />
+        </div> */}
 
-        {/* ✅ Add Patient Button */}
-        <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Patients</h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Patient
-          </button>
+        {/* Action Bar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            {/* Search Bar */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search patients by name or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            {/* Add Patient Button */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Patient
+            </button>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 overflow-x-auto">
+        {/* Tabs with Modern Design */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 mb-6">
+          <div className="p-6 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Patient Records
+              </h2>
+              <span className="text-sm text-slate-500">
+                {filteredPatients.length}{" "}
+                {filteredPatients.length === 1 ? "patient" : "patients"}
+              </span>
+            </div>
+
+            <nav className="flex space-x-1 bg-slate-50 p-1 rounded-xl">
               {[
-                { key: 'all', label: 'All Patients', count: counts.all },
-                { key: 'opd', label: 'OPD Patients', count: counts.opd },
-                { key: 'discharged', label: 'Discharged Patients', count: counts.discharged },
-                { key: 'called', label: 'Called Patients', count: counts.called },
-                { key: 'never-called', label: 'Never Called', count: counts.neverCalled },
+                { key: "all", label: "All", count: counts.all },
+                { key: "opd", label: "OPD", count: counts.opd },
+                {
+                  key: "discharged",
+                  label: "Discharged",
+                  count: counts.discharged,
+                },
+                { key: "called", label: "Called", count: counts.called },
+                {
+                  key: "never-called",
+                  label: "Never Called",
+                  count: counts.neverCalled,
+                },
               ].map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key as TabType)}
-                  className={`${
+                  className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                     activeTab === tab.key
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
                 >
-                  {tab.label} ({tab.count})
+                  {tab.label}
+                  <span
+                    className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                      activeTab === tab.key
+                        ? "bg-blue-50 text-blue-600"
+                        : "bg-slate-200/50 text-slate-600"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
                 </button>
               ))}
             </nav>
           </div>
-        </div>
 
-        {/* Patient Table or States */}
-        <div className="bg-white shadow rounded-lg">
-          {!token ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <p className="text-gray-600">Not authenticated. Please login.</p>
-              <button
-                onClick={() => window.location.href = '/login'}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Go to Login
-              </button>
-            </div>
-          ) : isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              <span className="ml-3 text-gray-600">Loading patients...</span>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-600 mb-2">Error loading patients</p>
-              <p className="text-sm text-gray-500 mb-4">
-                {error instanceof Error ? error.message : 'Unknown error'}
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Retry
-              </button>
-            </div>
-          ) : filteredPatients.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600 mb-4">No patients found in this category</p>
-              {activeTab !== 'all' ? (
-                <button
-                  onClick={() => setActiveTab('all')}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                >
-                  View All Patients
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Add Your First Patient
-                </button>
-              )}
-            </div>
-          ) : (
-            <PatientTable
-              patients={filteredPatients}
-              onRefresh={() => refetch()}
-              token={token}
-            />
-          )}
+          {/* Table Content */}
+          <div className="p-6">
+            {!token ? (
+              <EmptyState
+                icon={User}
+                title="Authentication Required"
+                description="Please login to view patient records"
+                action={{
+                  label: "Go to Login",
+                  onClick: () => (window.location.href = "/login"),
+                }}
+              />
+            ) : isLoading ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+                <p className="text-slate-600 text-sm">Loading patients...</p>
+              </div>
+            ) : error ? (
+              <EmptyState
+                icon={LogOut}
+                title="Error Loading Patients"
+                description={
+                  error instanceof Error
+                    ? error.message
+                    : "Unknown error occurred"
+                }
+                action={{
+                  label: "Retry",
+                  onClick: () => refetch(),
+                }}
+              />
+            ) : filteredPatients.length === 0 ? (
+              <EmptyState
+                icon={User}
+                title={
+                  searchQuery ? "No matching patients" : "No patients found"
+                }
+                description={
+                  searchQuery
+                    ? "Try adjusting your search terms"
+                    : activeTab !== "all"
+                    ? "No patients in this category yet"
+                    : "Get started by adding your first patient"
+                }
+                action={
+                  searchQuery
+                    ? {
+                        label: "Clear Search",
+                        onClick: () => setSearchQuery(""),
+                      }
+                    : activeTab !== "all"
+                    ? {
+                        label: "View All Patients",
+                        onClick: () => setActiveTab("all"),
+                      }
+                    : {
+                        label: "Add First Patient",
+                        onClick: () => setShowAddModal(true),
+                      }
+                }
+              />
+            ) : (
+              <PatientTable
+                patients={filteredPatients}
+                onRefresh={() => refetch()}
+                token={token}
+              />
+            )}
+          </div>
         </div>
       </main>
 
-      {/* ✅ Add Patient Modal */}
+      {/* Add Patient Modal */}
       {showAddModal && (
         <AddPatientModal
           isOpen={showAddModal}
@@ -196,6 +302,73 @@ const { data, isLoading, error, refetch } = useQuery({
           onSuccess={() => refetch()}
         />
       )}
+    </div>
+  );
+}
+
+// Stat Card Component
+function StatCard({
+  title,
+  value,
+  change,
+  changeType,
+  gradient,
+}: {
+  title: string;
+  value: number;
+  change?: string;
+  changeType?: "positive" | "negative";
+  gradient: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-5 hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          {title}
+        </p>
+        <div className={`w-2 h-2 rounded-full bg-gradient-to-br ${gradient}`} />
+      </div>
+      <div className="flex items-end justify-between">
+        <p className="text-2xl font-bold text-slate-900">{value}</p>
+        {change && (
+          <span
+            className={`text-xs font-medium ${
+              changeType === "positive" ? "text-emerald-600" : "text-rose-600"
+            }`}
+          >
+            {change}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Empty State Component
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: any;
+  title: string;
+  description: string;
+  action: { label: string; onClick: () => void };
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+        <Icon className="h-8 w-8 text-slate-400" />
+      </div>
+      <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
+      <p className="text-sm text-slate-500 mb-6 max-w-sm">{description}</p>
+      <button
+        onClick={action.onClick}
+        className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg shadow-blue-500/30"
+      >
+        {action.label}
+      </button>
     </div>
   );
 }
